@@ -1,0 +1,7 @@
+TODO: 
+atoi errors fix
+start semaphores.c 
+	find libraries for synchranization
+start main.h
+creatre semaphores.h
+add english translate
