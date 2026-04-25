@@ -3,3 +3,9 @@ TODO
 
 #Object files
 *.o
+
+#Binary file
+proj2
+
+#Just for now
+proj2.out

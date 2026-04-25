@@ -45,10 +45,6 @@ error_state:
 	return 1;
 }
 
-void pohnali(void){
-
-}
-
 int main(int argc, char **argv){
 int8_t return_value = 0;
 

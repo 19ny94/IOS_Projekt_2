@@ -1,3 +1,8 @@
+/*Important detail: NEVER work with semaphore_current value
+ * use that only as debug tool. In practice semaphores
+ * change their value too quick and accidiently(for developer)
+ * so, if implementation needs, just work with signals and waits functions*/
+
 /*expected 5-8 semaphores*/
 
 /*semophore empty - no people in queue*/
@@ -41,41 +46,70 @@ TODO: Dispetcher semaphore
 	if(counter_of_customers == 0): printf("closing")
 */
 
-/* TODO: Card semaphore
- *	sem_card(1)
- * 	Vozik vyjizdi do nastupiste 
- * 	sem_card_wait()
- * 	Dela deckerement
- * 	Prijizdi do nastupiste, navstevnici vchazeji
- * 	if(card_capacity == 0 || customer_counter == 0): GO!
- * 	sem_card_post()
- * */
+/* TODO: Visitor semaphore
+ * 	There is must be impelement queue
+ * 	Reference is Little book of semaphores pg. 45
+ *	In any cases, when any visitor starts print "started"
+ *	In queue for any visitors works n-cards
+ *	So i wanna implement this as a leader and follower
+ *
+ * 	For card_capacity visitor we have one card
+ * 	So that like pair in relation, when 
+ * 	set of visitors and corresponding card
+ *
+ * 	GENIUS IDEA: When card starts, it sends signal
+ * 	to queue of visitor, that they can start.
+ * 	Now visitor can go to the turnstile,
+ * 	and when they all sit in card ->
+ * 	send signal to card, that it can start
+ *
+ * 	Queue implementation: 
+ * 	Card: 
+ *	
+ *
+ * 	*/
+
+/*TODO: finish
+void visitor_semaphore(arguments *arg){
+
+	uint16_t visitor_number = 0;
+	visitor_number++;
+	fprintf(stdout, "N %d: started\n", visitor_number);
+
+	uint16_t visitor_wait= rand() % (TODO);
+	usleep(visitor_wait);
+
+}
+*/
+
 
 void card_semaphore(arguments *arg){
 
 	/*There are two semaphores for boarding and leaving
 	 * Cause, only one card can currently be on platform*/
-	sem_open(sem_card_boarding, 1);
-	sem_open(sem_card_leaving, 1);
+
+	/*TODO: Semaphores must be opened by another way and in another place*/
+//	sem_open(sem_card_boarding, 1);
+//	sem_open(sem_card_leaving, 1);
 	
 	/*Card starts to board*/
 	sem_wait(&sem_card_boarding);
 	
-	fprintf(stdout, "V %d: started", arg->card_capacity);
+	fprintf(stdout, "V %d: started\n", arg->card_capacity);
 	arg->card--;
 
 	/*All cards gets their max. capacity as a local variable*/
 	uint8_t current_card_capacity = arg->card_capacity;
 
 	/*While card is boarding, his capacity decrease*/
-	fprintf(stdout, "V %d: boarding started", arg->card_capacity);
+	fprintf(stdout, "V %d: boarding started\n", arg->card_capacity);
 
 	/*When card is full, all last visitor for today was boarded - start*/
 	while(arg->card_capacity == 0 || arg->visitor == 0){
 	current_card_capacity--;
-	fprintf(stdout, "V %d: boarding", arg->card_capacity);
+	fprintf(stdout, "V %d: boarding\n", arg->card_capacity);
 	}
-	fprintf(stdout, "V %d: boarding complete", arg->card_capacity);
+	fprintf(stdout, "V %d: boarding complete\n", arg->card_capacity);
 
 	/*Do signal for next one*/
 	sem_post(&sem_card_boarding);
@@ -88,14 +122,14 @@ void card_semaphore(arguments *arg){
 	 *I do semophore here, because it needs to wait for platforme release*/
 	sem_wait(&sem_card_leaving);
 	
-	fprintf(stdout, "V %d: leaving started", arg->card_capacity);
+	fprintf(stdout, "V %d: leaving started\n", arg->card_capacity);
 	
 	/*While card is not empty - wait*/
 	while(current_card_capacity != arg->card_capacity ){
-	fprintf(stdout, "V %d: leaving", arg->card_capacity);
+	fprintf(stdout, "V %d: leaving\n", arg->card_capacity);
 	}
 
-	fprintf(stdout, "V %d: leaving complete", arg->card_capacity);
+	fprintf(stdout, "V %d: leaving complete\n", arg->card_capacity);
 	sem_post(&sem_card_leaving);
 
 	arg->card++;
