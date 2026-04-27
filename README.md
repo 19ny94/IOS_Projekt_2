@@ -1,2 +1,20 @@
 # IOS_Projekt_2
-Process synchronisation by semaphores 
+Process synchronization by semaphores 
+
+# Implement details
+
+===================
+|
++- source
+    |
+    +- main.c
+    +- main.h
+    +- semaphores.c
+    +- semaphores.h
+    +- binary staff
+|
++- proj2.out
++- Makefile
++- README.md
+===================
+
