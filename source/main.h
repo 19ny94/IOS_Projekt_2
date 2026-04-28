@@ -6,5 +6,10 @@ typedef struct{
 	uint16_t cart_time; 
 	uint16_t visitor_time; 
 	uint8_t safe_interval; 
-
+	uint16_t visitor_sleep;
+	uint16_t cart_sleep;
+	char* file;
 } arguments; 
+
+
+uint8_t sleep_time_init(arguments *arg);

@@ -8,6 +8,8 @@
 #include<sys/wait.h> //read more later
 #include"semaphores.h"
 
+#define filename "proj2.out"
+
 /*constructor of arguments' structure*/
 arguments* arg_strc_ctor(void){
 	arguments *arg = malloc(sizeof(arguments));
@@ -53,6 +55,8 @@ uint8_t arguments_reading(int argc, char **argv, arguments *arg){
 
 	arg->safe_interval = atoi(argv[6]);
 	if(arg->safe_interval > 100 || arg->safe_interval <= 0) {goto error_state;}
+
+	sleep_time_init(arg);
 
 	return 0;
 
@@ -103,6 +107,10 @@ void semaphores_implement(arguments *arg, shared_variables *sh_var){
 	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
 
+	sh_var->visitor_ts_lv = 
+	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
+	MAP_ANON | MAP_SHARED, -1, 0);
+
 	sh_var->visitor_gl_cn = 
 	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
@@ -127,10 +135,14 @@ void semaphores_implement(arguments *arg, shared_variables *sh_var){
 	mmap(NULL, sizeof(uint8_t), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
 
-
 	*sh_var->visitor_gl_cn = arg->visitor_gl_cn;
+	*sh_var->visitor_ts_cn = 0;
+	*sh_var->visitor_ts_lv = 0;
 	*sh_var->cart_gl_cn = arg->cart_gl_cn;
 	*sh_var->finish_flag = 0;
+	*sh_var->visitor_cn = 0;
+	*sh_var->cart_cn = 1;
+	*sh_var->process_cn = 1;
 
 	all_semaphores_open();
 
@@ -139,7 +151,17 @@ void semaphores_implement(arguments *arg, shared_variables *sh_var){
 	close_all_semaphores();
 }
 
+uint8_t sleep_time_init(arguments *arg){
+	arg->visitor_sleep = rand() % (arg->visitor_time + 1);
+	arg->cart_sleep = (arg->cart_time/2) + rand() % (arg->cart_time - arg->cart_time/2 + 1) ;
+	return 0;
+}
+
 int main(int argc, char **argv){
+
+freopen(filename, "w", stdout);
+
+setbuf(stdout,NULL);
 
 int8_t return_value = 0;
 
@@ -159,6 +181,5 @@ sh_var_dtor(sh_var);
 if(return_value != 0){
 	fprintf(stderr, "Neco se pokazilo :c \n");
 }
-
 return return_value;
 }

@@ -11,7 +11,5 @@ main.o: main.c
 semaphores.o: semaphores.c
 	$(CC) $(CFLAGS) -Isource -c source/semaphores.c -o source/semaphores.o
 
-test_case: 
-	./proj2.out 1 1 4 1 1 1
-fail_case: 
-	./proj2.out 1 1 4 1 1 0
+test: 
+	./proj2 2 10 4 10 10 10

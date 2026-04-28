@@ -4,6 +4,7 @@
 typedef struct{
 	uint16_t* visitor_cn;
 	uint16_t* visitor_ts_cn;
+	uint16_t* visitor_ts_lv;
 	uint16_t* visitor_gl_cn;
 	uint16_t* cart_cn;
 	uint16_t* cart_gl_cn;
@@ -20,6 +21,7 @@ sem_t* leaving_station; //sem(1)
 sem_t* visitor_leaving; //sem(0)
 sem_t* boarding_turnstile; //sem(0)
 sem_t* leaving_turnstile; //sem(0)
+sem_t* boarding_signal; //sem(0)
 
 void all_semaphores_open(void);
 void close_all_semaphores(void);
