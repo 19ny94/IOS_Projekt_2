@@ -56,8 +56,6 @@ uint8_t arguments_reading(int argc, char **argv, arguments *arg){
 	arg->safe_interval = atoi(argv[6]);
 	if(arg->safe_interval > 100 || arg->safe_interval <= 0) {goto error_state;}
 
-	sleep_time_init(arg);
-
 	return 0;
 
 error_state:
@@ -96,8 +94,7 @@ void process_branching(arguments *arg, shared_variables *sh_var){
 
 }
 
-/*shared_variables inicialization and semaphores calling*/
-void semaphores_implement(arguments *arg, shared_variables *sh_var){
+void shared_variables_init(arguments *arg, shared_variables *sh_var){
 
 	sh_var->visitor_cn = 
 	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
@@ -135,51 +132,49 @@ void semaphores_implement(arguments *arg, shared_variables *sh_var){
 	mmap(NULL, sizeof(uint8_t), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
 
+	/*Init start values of variables*/
 	*sh_var->visitor_gl_cn = arg->visitor_gl_cn;
 	*sh_var->visitor_ts_cn = 0;
 	*sh_var->visitor_ts_lv = 0;
 	*sh_var->cart_gl_cn = arg->cart_gl_cn;
 	*sh_var->finish_flag = 0;
 	*sh_var->visitor_cn = 0;
-	*sh_var->cart_cn = 1;
-	*sh_var->process_cn = 1;
-
-	all_semaphores_open();
-
-	process_branching(arg, sh_var);
-
-	close_all_semaphores();
-}
-
-uint8_t sleep_time_init(arguments *arg){
+	*sh_var->cart_cn = 0;
+	*sh_var->process_cn = 0;
 	arg->visitor_sleep = rand() % (arg->visitor_time + 1);
-	arg->cart_sleep = (arg->cart_time/2) + rand() % (arg->cart_time - arg->cart_time/2 + 1) ;
-	return 0;
+	arg->cart_sleep = (arg->cart_time/2) + rand() % (arg->cart_time - arg->cart_time/2 + 1);
+
+
 }
 
 int main(int argc, char **argv){
 
-freopen(filename, "w", stdout);
+	/**/
+	freopen(filename, "w", stdout);
+	setbuf(stdout,NULL);
 
-setbuf(stdout,NULL);
+	/*Structs constructe*/
+	arguments *arg = arg_strc_ctor();
+	if(arg == NULL){return 1;}
+	shared_variables *sh_var = sh_var_ctor();
+	if(sh_var == NULL){return 1;}
 
-int8_t return_value = 0;
+	int8_t return_value = 0;
 
-arguments *arg = arg_strc_ctor();
-if(arg == NULL){return 1;}
+	if(arguments_reading(argc, argv, arg) != 0){return_value = 1;}
 
-shared_variables *sh_var = sh_var_ctor();
-if(sh_var == NULL){return 1;}
+	shared_variables_init(arg, sh_var);
 
-if(arguments_reading(argc, argv, arg) != 0){return_value = 1;}
+	all_semaphores_open();
+	process_branching(arg, sh_var);
+	all_semaphores_close();
 
-semaphores_implement(arg, sh_var);
+	arg_strc_dtor(arg);
+	sh_var_dtor(sh_var);
 
-arg_strc_dtor(arg);
-sh_var_dtor(sh_var);
+	if(return_value != 0){
+		fprintf(stderr, "Neco se pokazilo :c \n");
+	}
 
-if(return_value != 0){
-	fprintf(stderr, "Neco se pokazilo :c \n");
-}
-return return_value;
+	return return_value;
 }

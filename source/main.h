@@ -11,5 +11,9 @@ typedef struct{
 	char* file;
 } arguments; 
 
+/**/
+arguments* arg_strc_ctor(void);
 
-uint8_t sleep_time_init(arguments *arg);
+void arg_strc_dtor(arguments *arg);
+
+uint8_t arguments_reading(int argc, char **argv, arguments *arg);
