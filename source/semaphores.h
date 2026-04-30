@@ -11,6 +11,8 @@ typedef struct{
 	uint16_t* cur_vis_on_board;
 	uint16_t* process_cn;
 	uint8_t* finish_flag;
+	char* sem_name;
+	char* sem_arr;
 } shared_variables;
 
 sem_t* dis_next_cart; //sem(0)

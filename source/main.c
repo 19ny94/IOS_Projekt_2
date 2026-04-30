@@ -9,6 +9,7 @@
 #include"semaphores.h"
 
 #define filename "proj2.out"
+#define SEMAPHORE_CN 8
 
 /*constructor of arguments' structure*/
 arguments* arg_strc_ctor(void){
@@ -39,10 +40,10 @@ uint8_t arguments_reading(int argc, char **argv, arguments *arg){
 	if(argc != 7){fprintf(stderr, "Invalid numbers of arguments\n"); return 1;}
 
 	arg->cart_gl_cn = atoi(argv[1]);
-	if(arg->cart_gl_cn >= 10 || arg->cart_gl_cn <= 0) {goto error_state;}
+	if(arg->cart_gl_cn <= 0 || arg->cart_gl_cn >= 10)  {goto error_state;}
 
 	arg->visitor_gl_cn = atoi(argv[2]);
-	if(arg->visitor_gl_cn >= 1000 || arg->visitor_gl_cn <= 0) {goto error_state;}
+	if(arg->visitor_gl_cn >= 10000 || arg->visitor_gl_cn <= 0) {goto error_state;}
 
 	arg->cart_capacity = atoi(argv[3]);
 	if(arg->cart_capacity > 40 || arg->cart_capacity < 4) {goto error_state;}
@@ -131,6 +132,15 @@ void shared_variables_init(arguments *arg, shared_variables *sh_var){
 	sh_var->cur_vis_on_board = 
 	mmap(NULL, sizeof(uint8_t), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
+
+	sh_var->sem_name = 
+	mmap(NULL, sizeof(char) * 8, PROT_READ | PROT_WRITE, 
+	MAP_ANON | MAP_SHARED, -1, 0);
+
+	sh_var->sem_arr =
+	mmap(NULL, sizeof(char) * 8, PROT_READ | PROT_WRITE, 
+	MAP_ANON | MAP_SHARED, -1, 0);
+
 
 	/*Init start values of variables*/
 	*sh_var->visitor_gl_cn = arg->visitor_gl_cn;

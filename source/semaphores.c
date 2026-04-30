@@ -5,18 +5,13 @@
 
 #define SEMAPHORE_CN 9
 
+
+
+
+
 /*Open all semaphores*/
 void all_semaphores_open(void){
 
-	char *sem_name[SEMAPHORE_CN] = {"/dis_next_cart",
-	"/boarding_station", "/mutex", "/visitor_boarding",
-	"/leaving_station", "/visitor_leaving", "/boarding_turnstile",
-	"/leaving_turnstile", "/boarding_signal"};
-
-	for(uint8_t sem_i = 0; sem_i < SEMAPHORE_CN; sem_i++){
-	sem_unlink(sem_name[sem_i]);
-	}
-	sem_unlink("/queue");
 
 	dis_next_cart =
 	sem_open("/dis_next_cart", O_CREAT ,0644, 0);
@@ -30,9 +25,6 @@ void all_semaphores_open(void){
 	queue =
 	sem_open("/queue", O_CREAT ,0644, 0);
 
-	visitor_boarding =
-	sem_open("/visitor_boarding", O_CREAT ,0644, 0);
-	
 	leaving_station =
 	sem_open("/leaving_station", O_CREAT ,0644, 1);
 
@@ -52,22 +44,20 @@ void all_semaphores_open(void){
 /*Function close and unlink all opened semaphores*/
 void all_semaphores_close(void){
 
+	char* sem_name[SEMAPHORE_CN] = {"/dis_next_cart",
+	"/boarding_station", "/mutex", "/queue",
+	"/leaving_station", "/visitor_leaving", "/boarding_turnstile",
+	"/char* leaving_turnstile", "/boarding_signal"};
+
 	sem_t* sem_arr[SEMAPHORE_CN] = {dis_next_cart,
-	boarding_station, mutex, visitor_boarding,
+	boarding_station, mutex, queue,
 	leaving_station, visitor_leaving, boarding_turnstile,
 	leaving_turnstile,boarding_signal};
 
-	char *sem_name[SEMAPHORE_CN] = {"/dis_next_cart",
-	"/boarding_station", "/mutex", "/visitor_boarding",
-	"/leaving_station", "/visitor_leaving", "/boarding_turnstile",
-	"/leaving_turnstile", "/boarding_signal"};
-
 	for(uint8_t sem_i = 0; sem_i < SEMAPHORE_CN; sem_i++){
-	sem_close(sem_arr[sem_i]);
 	sem_unlink(sem_name[sem_i]);
+	sem_close(sem_arr[sem_i]);
 	}
-	sem_close(queue);
-	sem_unlink("/queue");
 }
 
 void print_act(sem_t* mutex, char *action_txt, uint16_t *variable){
@@ -99,6 +89,7 @@ void dispatcher_semaphore(arguments *arg, shared_variables *sh_var){
 		print_act(mutex, "%d D: next cart\n", sh_var->process_cn);
 		sem_post(dis_next_cart);
 		
+		sem_wait(boarding_signal);
 		/*Next one he'll send after safe time*/
 		usleep(arg->safe_interval);
 	
@@ -144,6 +135,8 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	/*As i got, boarding and leaving stations are critical sections in our case
 	 * So, only one cart can currently be at either station*/
 	sem_wait(boarding_station);
+
+
 	
 	print_act_2v(mutex, "%d V %d: boarding started\n", sh_var->process_cn, &cur_cart_num);
 
@@ -160,6 +153,7 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	sem_post(mutex);
 
 
+
 	
 	/*Cart sends signal to n-visitors, where n - number of visitor, which can 
 	 * now board*/
@@ -168,11 +162,19 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	sem_wait(boarding_turnstile);
 	}
 
+
 	/*Now really important moment. Because somethimes we need to ride not full cart 
 	 * we need to calculate, how many visitors we expected for next ride*/
 
 	/*Cart free critical section and send signal to next one*/
+	print_act_2v(mutex, "%d V %d: boarding complete\n", sh_var->process_cn, &cur_cart_num);
+
 	sem_post(boarding_station);
+
+
+	sem_post(boarding_signal);
+
+
 
 	/*We're leaving, fasten your seat belts*/
 	usleep(arg->cart_sleep);
@@ -187,6 +189,7 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 		sem_post(visitor_leaving);
 		sem_wait(leaving_turnstile);
 	}
+	print_act_2v(mutex, "%d V %d: leaving complete\n", sh_var->process_cn, &cur_cart_num);
 	
 	/*Cart free leaving station*/
 	sem_post(leaving_station);
