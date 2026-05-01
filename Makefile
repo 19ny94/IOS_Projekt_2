@@ -13,3 +13,5 @@ semaphores.o: semaphores.c
 
 test: 
 	./proj2 2 10 4 10 10 10
+test_2: 
+	./proj2 1 9999 4 10 10 10

@@ -2,14 +2,49 @@
 #include<assert.h>
 #include<stdint.h>
 #include<stdlib.h>
-#include<sys/mman.h>
+#include<sys/mman.h> //read more later
 #include<semaphore.h>
 #include<unistd.h>
 #include<sys/wait.h> //read more later
 #include"semaphores.h"
 
+/*Filename according to project*/
 #define filename "proj2.out"
-#define SEMAPHORE_CN 8
+
+/*I put main as a first function just for */
+int main(int argc, char **argv){
+
+	/*When i started, all semaphores' print i was doing into stdout
+	 * freopen redirects standart I/O*/
+	freopen(filename, "w", stdout);
+	setbuf(stdout,NULL);
+
+	int8_t return_value = 0;
+
+	/*Structs constructe*/
+	arguments *arg = arg_strc_ctor();
+	if(arg == NULL){return_value = 1;}
+	shared_variables *sh_var = sh_var_ctor();
+	if(sh_var == NULL){return_value = 1;}
+
+	if(arguments_reading(argc, argv, arg) != 0){return_value = 1;}
+
+	if(shared_variables_init(arg, sh_var) != 0){return_value = 1;}
+
+	/*Semaphores work*/
+	all_semaphores_open();
+	process_branching(arg, sh_var);
+	all_semaphores_close();
+
+	arg_strc_dtor(arg);
+	sh_var_dtor(sh_var);
+
+	if(return_value != 0){
+		fprintf(stderr, "Neco se pokazilo :c \n");
+	}
+
+	return return_value;
+}
 
 /*constructor of arguments' structure*/
 arguments* arg_strc_ctor(void){
@@ -95,58 +130,32 @@ void process_branching(arguments *arg, shared_variables *sh_var){
 
 }
 
-void shared_variables_init(arguments *arg, shared_variables *sh_var){
+int shared_variables_init(arguments *arg, shared_variables *sh_var){
 
+
+	/*TODO: optimaze this whole function*/
 	sh_var->visitor_cn = 
-	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
-	sh_var->visitor_ts_cn = 
-	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
-	sh_var->visitor_ts_lv = 
-	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
+	mmap(NULL, sizeof(uint32_t), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
 
 	sh_var->visitor_gl_cn = 
-	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
+	mmap(NULL, sizeof(uint32_t), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
 
 	sh_var->cart_cn = 
-	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
-	sh_var->cart_gl_cn = 
-	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
+	mmap(NULL, sizeof(uint32_t), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
 
 	sh_var->process_cn = 
-	mmap(NULL, sizeof(uint16_t), PROT_READ | PROT_WRITE, 
+	mmap(NULL, sizeof(uint32_t), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
 
 	sh_var->finish_flag = 
-	mmap(NULL, sizeof(uint8_t), PROT_READ | PROT_WRITE, 
+	mmap(NULL, sizeof(uint32_t), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
-	
-	sh_var->cur_vis_on_board = 
-	mmap(NULL, sizeof(uint8_t), PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
-	sh_var->sem_name = 
-	mmap(NULL, sizeof(char) * 8, PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
-	sh_var->sem_arr =
-	mmap(NULL, sizeof(char) * 8, PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
 
 	/*Init start values of variables*/
 	*sh_var->visitor_gl_cn = arg->visitor_gl_cn;
-	*sh_var->visitor_ts_cn = 0;
-	*sh_var->visitor_ts_lv = 0;
-	*sh_var->cart_gl_cn = arg->cart_gl_cn;
 	*sh_var->finish_flag = 0;
 	*sh_var->visitor_cn = 0;
 	*sh_var->cart_cn = 0;
@@ -154,37 +163,5 @@ void shared_variables_init(arguments *arg, shared_variables *sh_var){
 	arg->visitor_sleep = rand() % (arg->visitor_time + 1);
 	arg->cart_sleep = (arg->cart_time/2) + rand() % (arg->cart_time - arg->cart_time/2 + 1);
 
-
-}
-
-int main(int argc, char **argv){
-
-	/**/
-	freopen(filename, "w", stdout);
-	setbuf(stdout,NULL);
-
-	/*Structs constructe*/
-	arguments *arg = arg_strc_ctor();
-	if(arg == NULL){return 1;}
-	shared_variables *sh_var = sh_var_ctor();
-	if(sh_var == NULL){return 1;}
-
-	int8_t return_value = 0;
-
-	if(arguments_reading(argc, argv, arg) != 0){return_value = 1;}
-
-	shared_variables_init(arg, sh_var);
-
-	all_semaphores_open();
-	process_branching(arg, sh_var);
-	all_semaphores_close();
-
-	arg_strc_dtor(arg);
-	sh_var_dtor(sh_var);
-
-	if(return_value != 0){
-		fprintf(stderr, "Neco se pokazilo :c \n");
-	}
-
-	return return_value;
+	return 0;
 }

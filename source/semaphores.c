@@ -1,17 +1,25 @@
 #include<stdio.h>
+#include<stdarg.h>
 #include<stdint.h>
 #include<unistd.h>
 #include"semaphores.h"
 
 #define SEMAPHORE_CN 9
 
-
-
-
+/*TODO: make more comments, optimaze open, close and unlink*/
 
 /*Open all semaphores*/
 void all_semaphores_open(void){
 
+	sem_unlink("/dis_next_cart");
+	sem_unlink("/boarding_station");
+	sem_unlink("/mutex");
+	sem_unlink("/queue");
+	sem_unlink("/leaving_station");
+	sem_unlink("/boarding_turnstile");
+	sem_unlink("/visitor_leaving");
+	sem_unlink("/leaving_turnstile");
+	sem_unlink("/boarding_signal");
 
 	dis_next_cart =
 	sem_open("/dis_next_cart", O_CREAT ,0644, 0);
@@ -60,21 +68,19 @@ void all_semaphores_close(void){
 	}
 }
 
-void print_act(sem_t* mutex, char *action_txt, uint16_t *variable){
+void print_act(sem_t* mutex, char *action_txt, uint32_t *variable){
 	sem_wait(mutex);
 	(*variable)++;
 	fprintf(stdout, action_txt, *variable);
 	sem_post(mutex);
 }
 
-void print_act_2v(sem_t* mutex, char *action_txt, uint16_t *variable, uint16_t *variable_2){
+void print_act_2v(sem_t* mutex, char *action_txt, uint32_t *variable, uint32_t *variable_2){
 	sem_wait(mutex);
 	(*variable)++;
 	fprintf(stdout, action_txt, *variable, *variable_2);
 	sem_post(mutex);
 }
-
-
 
 void dispatcher_semaphore(arguments *arg, shared_variables *sh_var){
 	
@@ -89,11 +95,12 @@ void dispatcher_semaphore(arguments *arg, shared_variables *sh_var){
 		print_act(mutex, "%d D: next cart\n", sh_var->process_cn);
 		sem_post(dis_next_cart);
 		
+		/*Dispatcher waits when cart leave boarding station.
+		 * After waits safe time interval and send signal to next cart*/
 		sem_wait(boarding_signal);
-		/*Next one he'll send after safe time*/
 		usleep(arg->safe_interval);
 	
-		/*Cart understand if it's go not full
+		/*Cart understand if it go not full
 		 * So in this case, dispatcher make signal, that
 		 * if some cart is taking a ride now - 
 		 * they finish and close. For other 
@@ -115,10 +122,8 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	/*Assign number to current cart process*/
 	sem_wait(mutex);
 	(*sh_var->cart_cn)++;
-	uint16_t cur_cart_num = *sh_var->cart_cn;
-	(*sh_var->cart_gl_cn)--;
+	uint32_t cur_cart_num = *sh_var->cart_cn;
 	sem_post(mutex);
-
 
 	/*Cart process notify its' start*/
 	print_act_2v(mutex, "%d V %d: started\n", sh_var->process_cn, &cur_cart_num);
@@ -135,12 +140,10 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	/*As i got, boarding and leaving stations are critical sections in our case
 	 * So, only one cart can currently be at either station*/
 	sem_wait(boarding_station);
-
-
 	
 	print_act_2v(mutex, "%d V %d: boarding started\n", sh_var->process_cn, &cur_cart_num);
 
-	uint8_t cur_vis_on_board = 0;
+	uint32_t cur_vis_on_board = 0;
 	sem_wait(mutex);
 	if(*sh_var->visitor_gl_cn >= arg->cart_capacity){
 		cur_vis_on_board = arg->cart_capacity;
@@ -193,11 +196,6 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	
 	/*Cart free leaving station*/
 	sem_post(leaving_station);
-	
-	sem_wait(mutex);
-	(*sh_var->cart_gl_cn)++;	
-	sem_post(mutex);
-
 	}
 
 	print_act_2v(mutex, "%d V %d: closed\n", sh_var->process_cn, &cur_cart_num);
@@ -209,7 +207,7 @@ void visitor_semaphore(arguments *arg, shared_variables *sh_var){
 	/*Assign number to current visitor process*/
 	sem_wait(mutex);
 	(*sh_var->visitor_cn)++;
-	uint16_t cur_vis_num = *sh_var->visitor_cn;
+	uint32_t cur_vis_num = *sh_var->visitor_cn;
 	sem_post(mutex);
 
 	/*Visitor process notify its' start*/
