@@ -1,71 +1,59 @@
+/* @author Oleksandr Andreichenko (xandreo00)*/
+
 #include<stdio.h>
 #include<stdarg.h>
 #include<stdint.h>
 #include<unistd.h>
+#include<stdlib.h>
 #include"semaphores.h"
 
 #define SEMAPHORE_CN 9
 
-/*TODO: make more comments, optimaze open, close and unlink*/
+	/*---Init semaphore structure ---
+	 * Every semaphore in structure has his name,
+	 * name in "" and init value
+	 * Easiest way to do it as a global variable*/
+	semaphore_arr sem_ct_arr[] = {
+	{&dis_next_cart, "/dis_next_cart", 0},
+	{&boarding_station, "/boarding_station", 1},
+	{&mutex, "/mutex", 1},
+	{&queue, "/queue", 0},
+	{&leaving_station, "/leaving_station", 1},
+	{&boarding_turnstile ,"/boarding_turnstile", 0},
+	{&visitor_leaving, "/visitor_leaving", 0},
+	{&leaving_turnstile, "/leaving_turnstile", 0},
+	{&boarding_signal, "/boarding_signal", 0}
+	};
 
 /*Open all semaphores*/
-void all_semaphores_open(void){
+uint8_t all_semaphores_open(void){
 
-	sem_unlink("/dis_next_cart");
-	sem_unlink("/boarding_station");
-	sem_unlink("/mutex");
-	sem_unlink("/queue");
-	sem_unlink("/leaving_station");
-	sem_unlink("/boarding_turnstile");
-	sem_unlink("/visitor_leaving");
-	sem_unlink("/leaving_turnstile");
-	sem_unlink("/boarding_signal");
-
-	dis_next_cart =
-	sem_open("/dis_next_cart", O_CREAT ,0644, 0);
-	
-	boarding_station =
-	sem_open("/boarding_station", O_CREAT ,0644, 1);
-
-	mutex =
-	sem_open("/mutex", O_CREAT ,0644, 1);
-
-	queue =
-	sem_open("/queue", O_CREAT ,0644, 0);
-
-	leaving_station =
-	sem_open("/leaving_station", O_CREAT ,0644, 1);
-
-	visitor_leaving =
-	sem_open("/visitor_leaving", O_CREAT ,0644, 0);
-
-	boarding_turnstile =
-	sem_open("/boarding_turnstile", O_CREAT ,0644, 0);
-
-	leaving_turnstile =
-	sem_open("/leaving_turnstile", O_CREAT ,0644, 0);
-	
-	boarding_signal =
-	sem_open("/boarding_signal", O_CREAT ,0644, 0);
+	/*Just unlink all semaphores by his name
+	 * and call sem_open(Bacause MacOS doesn't work with sem_init)*/
+	for(uint8_t sem_idx = 0; sem_idx < SEMAPHORE_CN; sem_idx++){
+		sem_unlink(sem_ct_arr[sem_idx].sem_name);
+		*sem_ct_arr[sem_idx].sem_arr =
+		/*first argument - name, exactly in "/", 
+		 * second - O_CREAT - when this flag specified, function create semaphore, if it doesn't already exist
+		 * third - 0644 - Unix flag for files, specified read & write access rights
+		 * fourth - semaphore value*/
+		sem_open(sem_ct_arr[sem_idx].sem_name, O_CREAT ,0644, sem_ct_arr[sem_idx].init_value);
+		/*If fails for any reason - return value SEM_FAILED*/
+		if(*sem_ct_arr[sem_idx].sem_arr == SEM_FAILED){
+			return 1;
+		}
+	}
+	return 0;
 }
 
 /*Function close and unlink all opened semaphores*/
-void all_semaphores_close(void){
+uint8_t all_semaphores_close(void){
 
-	char* sem_name[SEMAPHORE_CN] = {"/dis_next_cart",
-	"/boarding_station", "/mutex", "/queue",
-	"/leaving_station", "/visitor_leaving", "/boarding_turnstile",
-	"/char* leaving_turnstile", "/boarding_signal"};
-
-	sem_t* sem_arr[SEMAPHORE_CN] = {dis_next_cart,
-	boarding_station, mutex, queue,
-	leaving_station, visitor_leaving, boarding_turnstile,
-	leaving_turnstile,boarding_signal};
-
-	for(uint8_t sem_i = 0; sem_i < SEMAPHORE_CN; sem_i++){
-	sem_unlink(sem_name[sem_i]);
-	sem_close(sem_arr[sem_i]);
+	for(uint8_t sem_idx = 0; sem_idx < SEMAPHORE_CN; sem_idx++){
+		/*sem_close return -1 if it unsuccess*/
+		if(sem_close(*sem_ct_arr[sem_idx].sem_arr) != 0){return 1;}
 	}
+	return 0;
 }
 
 void print_act(sem_t* mutex, char *action_txt, uint32_t *variable){
@@ -133,6 +121,9 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	/*Cart waits dispatcher signal to start boarding*/
 	sem_wait(dis_next_cart);
 
+	/* If there ain't any more visitors -> finish
+	 * I did it here, because all semaphores, even if they
+	 * just started by dispatcher to just close it self*/
 	if(*sh_var->visitor_gl_cn == 0){
 	break;
 	}
@@ -144,6 +135,13 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	print_act_2v(mutex, "%d V %d: boarding started\n", sh_var->process_cn, &cur_cart_num);
 
 	uint32_t cur_vis_on_board = 0;
+
+	/*Exactly when certain number of visitors boarded, 
+	 * this certain number we take away from visitor global counter
+	 *
+	 * So, for example, if current cart take last visitors on a board,
+	 * so it's gotta be last cart for today
+	 * Next one just finish, before it started*/
 	sem_wait(mutex);
 	if(*sh_var->visitor_gl_cn >= arg->cart_capacity){
 		cur_vis_on_board = arg->cart_capacity;
@@ -155,9 +153,6 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	*sh_var->visitor_gl_cn -= cur_vis_on_board;
 	sem_post(mutex);
 
-
-
-	
 	/*Cart sends signal to n-visitors, where n - number of visitor, which can 
 	 * now board*/
 	for(uint8_t vis_sig = 0; vis_sig < cur_vis_on_board; vis_sig++){
@@ -165,19 +160,14 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	sem_wait(boarding_turnstile);
 	}
 
-
-	/*Now really important moment. Because somethimes we need to ride not full cart 
-	 * we need to calculate, how many visitors we expected for next ride*/
-
 	/*Cart free critical section and send signal to next one*/
 	print_act_2v(mutex, "%d V %d: boarding complete\n", sh_var->process_cn, &cur_cart_num);
 
+	/*Cart free station for next cart*/
 	sem_post(boarding_station);
 
-
+	/*Also send signal to dispatcher that cart has already boarded*/
 	sem_post(boarding_signal);
-
-
 
 	/*We're leaving, fasten your seat belts*/
 	usleep(arg->cart_sleep);

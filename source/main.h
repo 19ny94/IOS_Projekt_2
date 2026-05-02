@@ -8,7 +8,6 @@ typedef struct{
 	uint8_t safe_interval; 
 	uint16_t visitor_sleep;
 	uint16_t cart_sleep;
-	char* file;
 } arguments; 
 
 /**/

@@ -19,6 +19,7 @@ int main(int argc, char **argv){
 	freopen(filename, "w", stdout);
 	setbuf(stdout,NULL);
 
+	/*Specified return value, main fuction return value after all controls*/
 	int8_t return_value = 0;
 
 	/*Structs constructe*/
@@ -32,9 +33,9 @@ int main(int argc, char **argv){
 	if(shared_variables_init(arg, sh_var) != 0){return_value = 1;}
 
 	/*Semaphores work*/
-	all_semaphores_open();
+	if(all_semaphores_open() != 0){return_value = 1;}
 	process_branching(arg, sh_var);
-	all_semaphores_close();
+	if(all_semaphores_close() != 0){return_value = 1;}
 
 	arg_strc_dtor(arg);
 	sh_var_dtor(sh_var);
@@ -48,6 +49,7 @@ int main(int argc, char **argv){
 
 /*constructor of arguments' structure*/
 arguments* arg_strc_ctor(void){
+
 	arguments *arg = malloc(sizeof(arguments));
 	if(arg == NULL){return NULL;}
 	return arg;
@@ -56,9 +58,21 @@ arguments* arg_strc_ctor(void){
 /*constructor of shared variables' structure*/
 shared_variables* sh_var_ctor(void){
 	
+	/*i used to do malloc for this structure, but i can do 
+	 * whole structure as a shared resource*/
 	shared_variables *sh_var = malloc(sizeof(shared_variables));
 	if(sh_var == NULL){return NULL;}
 	return sh_var;
+
+/*	TODO: finish
+ *	shared_variables *sh_var =
+	mmap(NULL, sizeof(shared_variables), PROT_READ | PROT_WRITE, 
+	MAP_ANON | MAP_SHARED, -1, 0);
+
+	if(sh_var == MAP_FAILED){return NULL;}
+
+	return sh_var;
+*/
 }
 
 /*destructor of arguments' structure*/

@@ -27,6 +27,14 @@ typedef struct{
 
 } shared_variables;
 
+typedef struct{
+
+	sem_t*  *sem_arr;
+	const char * sem_name;
+	uint8_t init_value;
+
+} semaphore_arr;
+
 /*Sends signal from dispatcher to cart to start*/
 sem_t* dis_next_cart; //sem(0)
 
@@ -57,10 +65,10 @@ sem_t* leaving_turnstile; //sem(0)
 sem_t* boarding_signal; //sem(0)
 
 /*Opened all semaphores*/
-void all_semaphores_open(void);
+uint8_t all_semaphores_open(void);
 
 /*Close all semaphores*/
-void all_semaphores_close(void);
+uint8_t all_semaphores_close(void);
 
 /*Implemented 3 types of processes*/
 void dispatcher_semaphore(arguments *arg, shared_variables *sh_var);
