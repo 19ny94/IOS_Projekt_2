@@ -5,25 +5,25 @@
 typedef struct{
 	/*Current visitor number, every visitor read value 
 	 * into his local variable, after this do increment*/
-	uint32_t* visitor_cn;
+	uint32_t visitor_cn;
 
 	/*How many visitors we expect during park open
 	 *Cart */
-	uint32_t* visitor_gl_cn;
+	uint32_t visitor_gl_cn;
 
 	/*Current cart number*/
-	uint32_t* cart_cn;
+	uint32_t cart_cn;
 
 	/*Rather for case, when number of left visitors less then cart capacity*/
-	uint32_t* cur_vis_on_board;
+	uint32_t cur_vis_on_board;
 
 	/*Log/process ordinal number*/
-	uint32_t* process_cn;
+	uint32_t process_cn;
 
 	/*After assembler experience this seems as a good idea
 	 * Finish flag - we are about to finish, but not exatly now
 	 * Cart sets flag, when it understands, that one going to be last ride*/
-	uint32_t* finish_flag;
+	uint8_t finish_flag;
 
 } shared_variables;
 
@@ -75,7 +75,7 @@ void dispatcher_semaphore(arguments *arg, shared_variables *sh_var);
 void cart_semaphore(arguments *arg, shared_variables *sh_var);
 void visitor_semaphore(arguments *arg, shared_variables *sh_var);
 
-shared_variables* sh_var_ctor(void);
+shared_variables* sh_var_ctor(arguments *arg);
 
 void sh_var_dtor(shared_variables *sh_var);
 

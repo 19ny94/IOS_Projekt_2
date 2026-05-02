@@ -10,4 +10,7 @@ proj2
 #Just for now
 proj2.out
 
+#Test 
+kontrola-vystupu.sh
+
 .DS_Store

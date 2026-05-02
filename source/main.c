@@ -25,12 +25,11 @@ int main(int argc, char **argv){
 	/*Structs constructe*/
 	arguments *arg = arg_strc_ctor();
 	if(arg == NULL){return_value = 1;}
-	shared_variables *sh_var = sh_var_ctor();
-	if(sh_var == NULL){return_value = 1;}
 
 	if(arguments_reading(argc, argv, arg) != 0){return_value = 1;}
 
-	if(shared_variables_init(arg, sh_var) != 0){return_value = 1;}
+	shared_variables *sh_var = sh_var_ctor(arg);
+	if(sh_var == NULL){return_value = 1;}
 
 	/*Semaphores work*/
 	if(all_semaphores_open() != 0){return_value = 1;}
@@ -56,23 +55,35 @@ arguments* arg_strc_ctor(void){
 }
 
 /*constructor of shared variables' structure*/
-shared_variables* sh_var_ctor(void){
+shared_variables* sh_var_ctor(arguments *arg){
 	
 	/*i used to do malloc for this structure, but i can do 
-	 * whole structure as a shared resource*/
-	shared_variables *sh_var = malloc(sizeof(shared_variables));
-	if(sh_var == NULL){return NULL;}
-	return sh_var;
+	 * whole structure as a shared resource
+	 * Also i used to alocate every shared variable separately */
 
-/*	TODO: finish
- *	shared_variables *sh_var =
+	/*First argument - starting mapping address, i don't care so NULL
+	 *Second - size_t of memory allocation
+	 *Third - protection, read & write access
+	 *Fourth - flags, MAP_ANON(doesn't link into file), MAP_SHARED - shared memory part
+	 *Fifth - descriptor, doesn't care if set MAP_ANON
+	 * Sixth - offset, 0 because start from start
+	 */
+	shared_variables *sh_var =
 	mmap(NULL, sizeof(shared_variables), PROT_READ | PROT_WRITE, 
 	MAP_ANON | MAP_SHARED, -1, 0);
 
 	if(sh_var == MAP_FAILED){return NULL;}
 
+	sh_var->visitor_gl_cn = arg->visitor_gl_cn;
+	sh_var->finish_flag = 0;
+	sh_var->visitor_cn = 0;
+	sh_var->cart_cn = 0;
+	sh_var->process_cn = 0;
+	arg->visitor_sleep = rand() % (arg->visitor_time + 1);
+	arg->cart_sleep = (arg->cart_time/2) + rand() % (arg->cart_time - arg->cart_time/2 + 1);
+
 	return sh_var;
-*/
+
 }
 
 /*destructor of arguments' structure*/
@@ -81,7 +92,8 @@ void arg_strc_dtor(arguments *arg){
 }
 /*destructor of shared_variables' structure*/
 void sh_var_dtor(shared_variables *sh_var){
-	free(sh_var);
+	munmap(sh_var, sizeof(shared_variables));
+
 }
 
 /* function reading and asserting arguments */
@@ -142,40 +154,4 @@ void process_branching(arguments *arg, shared_variables *sh_var){
 	}
 	while(wait(NULL) > 0);
 
-}
-
-int shared_variables_init(arguments *arg, shared_variables *sh_var){
-
-
-	/*TODO: optimaze this whole function*/
-	sh_var->visitor_cn = 
-	mmap(NULL, sizeof(uint32_t), PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
-	sh_var->visitor_gl_cn = 
-	mmap(NULL, sizeof(uint32_t), PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
-	sh_var->cart_cn = 
-	mmap(NULL, sizeof(uint32_t), PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
-	sh_var->process_cn = 
-	mmap(NULL, sizeof(uint32_t), PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
-	sh_var->finish_flag = 
-	mmap(NULL, sizeof(uint32_t), PROT_READ | PROT_WRITE, 
-	MAP_ANON | MAP_SHARED, -1, 0);
-
-	/*Init start values of variables*/
-	*sh_var->visitor_gl_cn = arg->visitor_gl_cn;
-	*sh_var->finish_flag = 0;
-	*sh_var->visitor_cn = 0;
-	*sh_var->cart_cn = 0;
-	*sh_var->process_cn = 0;
-	arg->visitor_sleep = rand() % (arg->visitor_time + 1);
-	arg->cart_sleep = (arg->cart_time/2) + rand() % (arg->cart_time - arg->cart_time/2 + 1);
-
-	return 0;
 }

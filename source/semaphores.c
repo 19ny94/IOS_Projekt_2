@@ -56,14 +56,14 @@ uint8_t all_semaphores_close(void){
 	return 0;
 }
 
-void print_act(sem_t* mutex, char *action_txt, uint32_t *variable){
+void print_act(sem_t* mutex, char *action_txt, uint32_t* variable){
 	sem_wait(mutex);
 	(*variable)++;
 	fprintf(stdout, action_txt, *variable);
 	sem_post(mutex);
 }
 
-void print_act_2v(sem_t* mutex, char *action_txt, uint32_t *variable, uint32_t *variable_2){
+void print_act_2v(sem_t* mutex, char *action_txt, uint32_t* variable, uint32_t* variable_2){
 	sem_wait(mutex);
 	(*variable)++;
 	fprintf(stdout, action_txt, *variable, *variable_2);
@@ -73,14 +73,14 @@ void print_act_2v(sem_t* mutex, char *action_txt, uint32_t *variable, uint32_t *
 void dispatcher_semaphore(arguments *arg, shared_variables *sh_var){
 	
 	/*Dispatcher process notify its' start*/
-	print_act(mutex, "%d D: started\n", sh_var->process_cn);
+	print_act(mutex, "%d: D: started\n", &sh_var->process_cn);
 
 	while(1){
-		if(*sh_var->visitor_gl_cn == 0){
+		if(sh_var->visitor_gl_cn == 0){
 		break;
 		}
 		/*Dispatcher send signal next cart to start*/
-		print_act(mutex, "%d D: next cart\n", sh_var->process_cn);
+		print_act(mutex, "%d: D: next cart\n", &sh_var->process_cn);
 		sem_post(dis_next_cart);
 		
 		/*Dispatcher waits when cart leave boarding station.
@@ -94,12 +94,12 @@ void dispatcher_semaphore(arguments *arg, shared_variables *sh_var){
 		 * they finish and close. For other 
 		 * cart, which currently free,
 		 * dispatcher just send signal*/
-		if(*sh_var->finish_flag != 0){
+		if(sh_var->finish_flag != 0){
 		break;
 		}
 	}
 	
-	print_act(mutex, "%d D: closing\n", sh_var->process_cn);
+	print_act(mutex, "%d: D: closing\n", &sh_var->process_cn);
 	for(uint8_t cart_to_lv = 0; cart_to_lv < arg->cart_gl_cn; cart_to_lv++){
 	sem_post(dis_next_cart);
 	}
@@ -109,12 +109,12 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 
 	/*Assign number to current cart process*/
 	sem_wait(mutex);
-	(*sh_var->cart_cn)++;
-	uint32_t cur_cart_num = *sh_var->cart_cn;
+	(sh_var->cart_cn)++;
+	uint32_t cur_cart_num = sh_var->cart_cn;
 	sem_post(mutex);
 
 	/*Cart process notify its' start*/
-	print_act_2v(mutex, "%d V %d: started\n", sh_var->process_cn, &cur_cart_num);
+	print_act_2v(mutex, "%d: V %d: started\n", &sh_var->process_cn, &cur_cart_num);
 
 	while(1){
 
@@ -124,7 +124,7 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	/* If there ain't any more visitors -> finish
 	 * I did it here, because all semaphores, even if they
 	 * just started by dispatcher to just close it self*/
-	if(*sh_var->visitor_gl_cn == 0){
+	if(sh_var->visitor_gl_cn == 0){
 	break;
 	}
 
@@ -132,7 +132,7 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	 * So, only one cart can currently be at either station*/
 	sem_wait(boarding_station);
 	
-	print_act_2v(mutex, "%d V %d: boarding started\n", sh_var->process_cn, &cur_cart_num);
+	print_act_2v(mutex, "%d: V %d: boarding started\n", &sh_var->process_cn, &cur_cart_num);
 
 	uint32_t cur_vis_on_board = 0;
 
@@ -143,14 +143,14 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	 * so it's gotta be last cart for today
 	 * Next one just finish, before it started*/
 	sem_wait(mutex);
-	if(*sh_var->visitor_gl_cn >= arg->cart_capacity){
+	if(sh_var->visitor_gl_cn >= arg->cart_capacity){
 		cur_vis_on_board = arg->cart_capacity;
 	}
 	else{
-		cur_vis_on_board = *sh_var->visitor_gl_cn;
-		*sh_var->finish_flag = 1;
+		cur_vis_on_board = sh_var->visitor_gl_cn;
+		sh_var->finish_flag = 1;
 	}
-	*sh_var->visitor_gl_cn -= cur_vis_on_board;
+	sh_var->visitor_gl_cn -= cur_vis_on_board;
 	sem_post(mutex);
 
 	/*Cart sends signal to n-visitors, where n - number of visitor, which can 
@@ -161,7 +161,7 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	}
 
 	/*Cart free critical section and send signal to next one*/
-	print_act_2v(mutex, "%d V %d: boarding complete\n", sh_var->process_cn, &cur_cart_num);
+	print_act_2v(mutex, "%d: V %d: boarding complete\n", &sh_var->process_cn, &cur_cart_num);
 
 	/*Cart free station for next cart*/
 	sem_post(boarding_station);
@@ -175,20 +175,20 @@ void cart_semaphore(arguments *arg, shared_variables *sh_var){
 	/*Cart comes to leaving station*/
 	sem_wait(leaving_station);
 	
-	print_act_2v(mutex, "%d V %d: leaving started\n", sh_var->process_cn, &cur_cart_num);
+	print_act_2v(mutex, "%d: V %d: leaving started\n", &sh_var->process_cn, &cur_cart_num);
 
 	/*Cart send a instruction to visitors to leave*/
 	for(uint8_t vis_sig = 0; vis_sig < cur_vis_on_board; vis_sig++){
 		sem_post(visitor_leaving);
 		sem_wait(leaving_turnstile);
 	}
-	print_act_2v(mutex, "%d V %d: leaving complete\n", sh_var->process_cn, &cur_cart_num);
+	print_act_2v(mutex, "%d: V %d: leaving complete\n", &sh_var->process_cn, &cur_cart_num);
 	
 	/*Cart free leaving station*/
 	sem_post(leaving_station);
 	}
 
-	print_act_2v(mutex, "%d V %d: closed\n", sh_var->process_cn, &cur_cart_num);
+	print_act_2v(mutex, "%d: V %d: closed\n", &sh_var->process_cn, &cur_cart_num);
 
 }
 
@@ -196,12 +196,12 @@ void visitor_semaphore(arguments *arg, shared_variables *sh_var){
 
 	/*Assign number to current visitor process*/
 	sem_wait(mutex);
-	(*sh_var->visitor_cn)++;
-	uint32_t cur_vis_num = *sh_var->visitor_cn;
+	(sh_var->visitor_cn)++;
+	uint32_t cur_vis_num = sh_var->visitor_cn;
 	sem_post(mutex);
 
 	/*Visitor process notify its' start*/
-	print_act_2v(mutex, "%d N %d: started\n", sh_var->process_cn, &cur_vis_num);
+	print_act_2v(mutex, "%d: N %d: started\n", &sh_var->process_cn, &cur_vis_num);
 
 	/*Every visitor comes to park, for example, walking around, and go to our atraction
 	 * So this time he waits, and go to queue. As i see in implementation example,
@@ -209,8 +209,8 @@ void visitor_semaphore(arguments *arg, shared_variables *sh_var){
 	usleep(arg->visitor_sleep);
 	sem_wait(queue);
 
-	print_act_2v(mutex, "%d N %d: queue\n", sh_var->process_cn, &cur_vis_num);
-	print_act_2v(mutex, "%d N %d: boarding\n", sh_var->process_cn, &cur_vis_num);
+	print_act_2v(mutex, "%d: N %d: queue\n", &sh_var->process_cn, &cur_vis_num);
+	print_act_2v(mutex, "%d: N %d: boarding\n", &sh_var->process_cn, &cur_vis_num);
 
 	/*Step by step visitor boarding in to cart, while cart isn't full. As for me, 
 	 * the best implementation of this - turnstile. When cart get full, so number of
@@ -222,7 +222,7 @@ void visitor_semaphore(arguments *arg, shared_variables *sh_var){
 	/*Visitors wait signal form cart to start leaving*/
 	sem_wait(visitor_leaving);
 
-	print_act_2v(mutex, "%d N %d: leaving\n", sh_var->process_cn, &cur_vis_num);
+	print_act_2v(mutex, "%d: N %d: leaving\n", &sh_var->process_cn, &cur_vis_num);
 	sem_post(leaving_turnstile);
 
 }
