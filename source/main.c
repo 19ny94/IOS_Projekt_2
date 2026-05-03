@@ -36,9 +36,11 @@ int main(int argc, char **argv){
 	if(sh_var == NULL){return_value = 1;}
 
 	/*Semaphores work*/
-	if(all_semaphores_open() != 0){return_value = 1;}
-	process_branching(arg, sh_var);
-	if(all_semaphores_close() != 0){return_value = 1;}
+	if(return_value == 0){
+		if(all_semaphores_open() != 0){return_value = 1;}
+			process_branching(arg, sh_var);
+		if(all_semaphores_close() != 0){return_value = 1;}
+	}
 
 	/*Structures destruct*/
 	arg_strc_dtor(arg);

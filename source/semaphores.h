@@ -35,35 +35,6 @@ typedef struct{
 
 } semaphore_arr;
 
-/*Sends signal from dispatcher to cart to start*/
-sem_t* dis_next_cart; //sem(0)
-
-/*Boarding station - critical section*/
-sem_t* boarding_station; //sem(1)
-
-/*Mutex for couting or printing*/
-sem_t* mutex; //sem(1)
-
-/*Queue of visitors*/
-sem_t* queue; //sem(0)
-
-/*Leaving station - critical section*/
-sem_t* leaving_station; //sem(1)
-
-/*Cart sends signal to visitor to start leaving*/
-sem_t* visitor_leaving; //sem(0)
-
-/*When i jut started, i was inspired by Little book of semaphore
- * And i wanted to implement turnstile for situation, 
- * When visitor boarding or leaving one by one,
- * And exatly when last has boarded or left - send a signal to continue
- * Unfortunatly, i don't realize how to implement*/
-sem_t* boarding_turnstile; //sem(0)
-sem_t* leaving_turnstile; //sem(0)
-
-/*Signal from cart to dispatcher, that cart was boarded and can start*/
-sem_t* boarding_signal; //sem(0)
-
 /*Opened all semaphores*/
 uint8_t all_semaphores_open(void);
 
