@@ -21,3 +21,4 @@ rm:
 	rm -rf source/semaphores.o
 	rm -rf source/main.o
 	rm -rf proj2
+	rm -rf proj2.out

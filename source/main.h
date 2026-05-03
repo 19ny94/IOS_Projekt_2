@@ -6,13 +6,17 @@ typedef struct{
 	uint16_t cart_time; 
 	uint16_t visitor_time; 
 	uint8_t safe_interval; 
+	
+	/*Random time implementation*/
 	uint16_t visitor_sleep;
 	uint16_t cart_sleep;
 } arguments; 
 
-/**/
+/*Construct arguments' structure*/
 arguments* arg_strc_ctor(void);
 
+/*Destruct arguments' structure*/
 void arg_strc_dtor(arguments *arg);
 
+/*Arguments parsing*/
 uint8_t arguments_reading(int argc, char **argv, arguments *arg);

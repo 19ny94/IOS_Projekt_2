@@ -75,10 +75,11 @@ void dispatcher_semaphore(arguments *arg, shared_variables *sh_var);
 void cart_semaphore(arguments *arg, shared_variables *sh_var);
 void visitor_semaphore(arguments *arg, shared_variables *sh_var);
 
+/*Allocate structure of shared variables by mmap()*/
 shared_variables* sh_var_ctor(arguments *arg);
 
+/*Free structure by munmap()*/
 void sh_var_dtor(shared_variables *sh_var);
 
+/*Function do fork() in loop for every type of processes*/
 void process_branching(arguments *arg, shared_variables *sh_var);
-
-int shared_variables_init(arguments *arg, shared_variables *sh_var);
