@@ -28,7 +28,7 @@ int main(int argc, char **argv){
 
 	/*Structs construct*/
 	arguments *arg = arg_strc_ctor();
-	if(arg == NULL){return_value = 1;}
+	if(arg == NULL){return 1;}
 
 	if(arguments_reading(argc, argv, arg) != 0){return_value = 1;}
 
@@ -101,28 +101,42 @@ void sh_var_dtor(shared_variables *sh_var){
 
 }
 
+/*read only number arguments, if any chars - fails*/
+uint8_t read_arg(char* arg, long* var){
+
+	/*Function strtol reads arguments' array elements
+	 * one by one, if anything not a decimal number
+	 * function stop end save where it stop */
+	char *endptr;
+
+	*var = strtol(arg, &endptr, 10);
+	if(*endptr != '\0'){return 1;}
+
+	return 0;
+}
+
 /* function reading and asserting arguments */
 uint8_t arguments_reading(int argc, char **argv, arguments *arg){
 
 	if(argc != 7){fprintf(stderr, "Invalid number of arguments\n"); return 1;}
 
-	arg->cart_gl_cn = atoi(argv[1]);
-	if(arg->cart_gl_cn <= 0 || arg->cart_gl_cn >= 10) {goto error_state;}
+	if(read_arg(argv[1], &arg->cart_gl_cn) != 0 ||
+	arg->cart_gl_cn <= 0 || arg->cart_gl_cn >= 10) {goto error_state;}
 
-	arg->visitor_gl_cn = atoi(argv[2]);
-	if(arg->visitor_gl_cn <= 0 || arg->visitor_gl_cn >= 10000) {goto error_state;}
+	if(read_arg(argv[2], &arg->visitor_gl_cn) != 0 ||
+	arg->visitor_gl_cn <= 0 || arg->visitor_gl_cn >= 10000) {goto error_state;}
 
-	arg->cart_capacity = atoi(argv[3]);
-	if(arg->cart_capacity < 4 || arg->cart_capacity > 40) {goto error_state;}
+	if(read_arg(argv[3], &arg->cart_capacity) != 0 ||
+	arg->cart_capacity < 4 || arg->cart_capacity > 40) {goto error_state;}
 
-	arg->cart_time = atoi(argv[4]);
-	if(arg->cart_time > 1000) {goto error_state;}
+	if(read_arg(argv[4], &arg->cart_time) != 0 ||
+	arg->cart_time < 0 || arg->cart_time > 1000) {goto error_state;}
 
-	arg->visitor_time = atoi(argv[5]);
-	if(arg->visitor_time > 1000) {goto error_state;}
+	if(read_arg(argv[5], &arg->visitor_time) != 0 ||
+	arg->visitor_time < 0 || arg->visitor_time > 1000) {goto error_state;}
 
-	arg->safe_interval = atoi(argv[6]);
-	if(arg->safe_interval <= 0 || arg->safe_interval > 100) {goto error_state;}
+	if(read_arg(argv[6], &arg->safe_interval) != 0 ||
+	arg->safe_interval <= 0 || arg->safe_interval > 100) {goto error_state;}
 
 	return 0;
 
