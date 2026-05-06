@@ -15,3 +15,4 @@ Process synchronization by semaphores
    └── semaphores.h
 
 ```
+# SCORE: 15/15
